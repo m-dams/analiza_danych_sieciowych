@@ -51,6 +51,10 @@ display(HTML("<style>.container { width:100% !important; }</style>"))
 
 #passwords
 import getpass
+import configparser
+
+CONFIG = configparser.ConfigParser()
+CONFIG.read('credentials.ini')
 
 
 class InstagramScraper():
@@ -62,7 +66,7 @@ class InstagramScraper():
 
     """
 
-    def __init__(self, driver_loc=r'C:\Users\DAMS\chromedriver.exe'):
+    def __init__(self, driver_loc=CONFIG['DEFAULT']['chromedriver_path']):
 
         # options = webdriver.ChromeOptions()
         # options.binary_location = "C:/Program Files/Google/Chrome/Application/chrome.exe"
@@ -174,11 +178,12 @@ class InstagramScraper():
             Nothing
 
         """
-        username = input('Enter username...')
-        password = getpass.getpass(prompt='Enter password...')
+        # username = input('Enter username...')
+        # password = getpass.getpass(prompt='Enter password...')
+        username = CONFIG['DEFAULT']['username']
+        password = CONFIG['DEFAULT']['password']
 
         self._password = password  # retain password as attribute
-
         self._username = username  # retain user name as attribute
 
         return
@@ -205,6 +210,7 @@ class InstagramScraper():
 
         options = webdriver.ChromeOptions()
         options.binary_location = "C:/Program Files/Google/Chrome/Application/chrome.exe"
+
         driver = webdriver.Chrome(self.driver_loc, options=options)
         # driver = webdriver.Chrome(self.driver_loc)
 
