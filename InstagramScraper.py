@@ -1,4 +1,4 @@
-#requests
+# requests
 import requests
 import urllib
 import urllib.request
@@ -10,17 +10,18 @@ from datetime import datetime
 import requests
 from urllib.request import urlopen, Request
 
-#data, strucuture and maths
+# data, strucuture and maths
 import pandas as pd
 import numpy as np
 import math
 import json
 import string
-from  more_itertools import unique_everseen
+from more_itertools import unique_everseen
 import random
 
-#progress,performance and management
-from tqdm import tqdm_notebook
+# progress,performance and management
+#from tqdm import tqdm_notebook
+from tqdm.notebook import tqdm
 import threading
 import os
 import ssl
@@ -37,19 +38,20 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.common.keys import Keys
 
-#time
+# time
 from time import sleep
 import time
 
-#text processing / regex
+# text processing / regex
 import regex
 import re
 
-#make wide
-from IPython.core.display import display, HTML
+# make wide
+from IPython.display import display, HTML
+
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
-#passwords
+# passwords
 import getpass
 import configparser
 
@@ -67,11 +69,6 @@ class InstagramScraper():
     """
 
     def __init__(self, driver_loc=CONFIG['DEFAULT']['chromedriver_path']):
-
-        # options = webdriver.ChromeOptions()
-        # options.binary_location = "C:/Program Files/Google/Chrome/Application/chrome.exe"
-        # service = webdriver.chrome.service.Service(executable_path=driver_loc)
-        # self.driver = webdriver.Chrome(service=service, options=options)
 
         self.driver_loc = driver_loc
 
@@ -161,7 +158,7 @@ class InstagramScraper():
 
         # load string
         json_data = json.loads(raw)
-
+        print(json_data)
         return json_data  # return JSON dictonary
 
     def userDetails(self):
@@ -207,12 +204,7 @@ class InstagramScraper():
         print("Launching driver...")
 
         # retain current driver as attribute
-
-        options = webdriver.ChromeOptions()
-        options.binary_location = "C:/Program Files/Google/Chrome/Application/chrome.exe"
-
-        driver = webdriver.Chrome(self.driver_loc, options=options)
-        # driver = webdriver.Chrome(self.driver_loc)
+        driver = webdriver.Chrome(self.driver_loc)
 
         return driver
 
@@ -253,50 +245,31 @@ class InstagramScraper():
         # base url
         driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')
 
-        sleep(2)  # wait
+        sleep(5)  # wait
 
-        # log in
-        username_field = driver.find_element_by_xpath(
-            '//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[2]/div/label/input')
+        username = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
+        password = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
 
-        username_field.click()  # click on username button
+        # enter username and password
+        username.clear()
+        username.send_keys(self._username)
+        password.clear()
+        password.send_keys(self._password)
 
-        # send username
-        username_field.send_keys(self._username)
-
-        # locate element to click
-        try:
-            password_field = driver.find_element_by_xpath(
-                '//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[3]/div/label/input')
-
-        except:
-            password_field = driver.find_element_by_xpath(
-                '//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/div/label/input')
-
-        password_field.click()
-
-        password_field.send_keys(self._password)
-
-        sleep(2)
-
-        # find log in button
-        login_button = driver.find_element_by_xpath(
-            '//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]')
-
-        login_button.click()
-
-        sleep(3)
-
-        # locate floating window to click and close
-        floating_window = driver.find_element_by_class_name('piCib')
-
-        button = floating_window.find_element_by_class_name('mt3GC')
-
-        not_now = button.find_element_by_xpath('/html/body/div[4]/div/div/div[3]/button[2]')
-
-        not_now.click()
-
+        # target the login button and click it
+        button = WebDriverWait(driver, 2).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
+        '''
+        time.sleep(5)
+        alert = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "Nie teraz")]'))).click()
+        alert2 = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "Nie teraz")]'))).click()
+        '''
         return driver
+
 
     def setTarget(self):
 
@@ -384,6 +357,8 @@ class InstagramScraper():
 
             source = self.activedriver.page_source
 
+            print(source)
+
             data = BeautifulSoup(source, 'html.parser')
 
             body = data.find('body')
@@ -423,10 +398,11 @@ class InstagramScraper():
 
         # links are saved as an attribute for the class instance
         self._links = list(unique_everseen(links))
-
         # clear the screen and provide user feedback on performance
         clear_output()
 
+        print(links)
+        #print(data)
         print("Finished scraping links. Maxed out at ", len(links), " links, of which ", len(self._links),
               ' are unique.')
 
@@ -564,9 +540,9 @@ class InstagramScraper():
 
     def postComment(self, data):
 
-        return \
-        data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_media_to_caption']['edges'][0]['node'][
-            'text']
+        return data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_media_to_caption']['edges'][0][
+                'node'][
+                'text']
 
     # get location of post
     def postLocation(self, data):
@@ -608,9 +584,11 @@ class InstagramScraper():
 
             except:
                 image = \
-                data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'][0][
-                    'node']['accessibility_caption'].replace('Image may contain: ', '').replace(' and ', ', ').replace(
-                    'one or more ', '')
+                    data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_sidecar_to_children'][
+                        'edges'][0][
+                        'node']['accessibility_caption'].replace('Image may contain: ', '').replace(' and ',
+                                                                                                    ', ').replace(
+                        'one or more ', '')
 
                 return image
         except:
@@ -684,7 +662,7 @@ class InstagramScraper():
         def extractData(links=self._links):
 
             # loops through and calls each data collection function on each link
-            for i in tqdm_notebook(range(len(links))):
+            for i in tqdm(range(len(links))):
 
                 try:
 
@@ -741,15 +719,14 @@ class InstagramScraper():
         df.reset_index(drop=True, inplace=True)  # reset index
 
         self._df = df  # retain final DataFrame as attribute
-
         return df
-
 
 
 togetherness = InstagramScraper()
 togetherness.logIn()
 togetherness.getLinks()
 togetherness_df = togetherness.getData()
+
 # print(pd.concat([human_df,humanexperience_df,togetherness_df,connection_df]).shape)
 # print(humanexperience_df.head())
 print(togetherness_df.head())
