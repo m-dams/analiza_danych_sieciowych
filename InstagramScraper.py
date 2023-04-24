@@ -20,7 +20,6 @@ from more_itertools import unique_everseen
 import random
 
 # progress,performance and management
-#from tqdm import tqdm_notebook
 from tqdm.notebook import tqdm
 import threading
 import os
@@ -71,95 +70,6 @@ class InstagramScraper():
     def __init__(self, driver_loc=CONFIG['DEFAULT']['chromedriver_path']):
 
         self.driver_loc = driver_loc
-
-    def multithreadCompile(self, thread_count, iteration_list, func):
-
-        """
-        This function compiles the batched needed for mult-threadding
-
-        Args:
-
-            thread_count is the number of threads used for multi-threadding
-
-            iteration_list is the source list of urls to iterate over
-
-            func is the function to be used in the multi-thredding process
-
-        Returns:
-
-            The batches that have been allocated to be run using the specified
-            function
-
-        """
-
-        jobs = []  # empty list for jobs
-
-        # distribute iteration list to batches and append to jobs list
-        batches = [i.tolist() for i in np.array_split(iteration_list, thread_count)]
-
-        for i in range(len(batches)):
-            jobs.append(threading.Thread(target=func, args=[batches[i]]))
-
-        return jobs
-
-    def multithreadExecute(self, jobs):
-
-        """
-
-        This function executes the multi-threadding process
-
-        Args:
-
-            The batches that have been appended to a jobs list
-
-        Returns:
-
-            Nothing, merely executes the multi-threadding
-
-        """
-
-        # Start the threads
-        for j in jobs:
-            print('execute working')
-            j.start()
-
-        # Ensure all of the threads have finished
-        for j in jobs:
-            j.join()
-
-        return
-
-    def getJson(self, url):
-
-        """
-        This function exracts a JSON style dictionary from the html for any
-        given unique Instagram post
-
-        Args:
-
-            An Instagram post URL
-
-        Returns:
-
-            JSON dictionary ouput
-
-        """
-
-        page = urlopen(url).read()  # read url
-
-        data = BeautifulSoup(page, 'html.parser')  # get a BeautifulSoup object
-
-        body = data.find('body')  # find body element
-
-        script = body.find('script')  # find script element
-
-        # some string formatting
-        raw = script.text.strip().replace('window._sharedData =', '').replace(';', '')
-
-        # load string
-        json_data = json.loads(raw)
-        print(json_data)
-        return json_data  # return JSON dictonary
 
     def userDetails(self):
 
@@ -270,7 +180,6 @@ class InstagramScraper():
         '''
         return driver
 
-
     def setTarget(self):
 
         """
@@ -357,8 +266,6 @@ class InstagramScraper():
 
             source = self.activedriver.page_source
 
-            print(source)
-
             data = BeautifulSoup(source, 'html.parser')
 
             body = data.find('body')
@@ -378,7 +285,7 @@ class InstagramScraper():
             self.activedriver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
             # Wait to load page
-            time.sleep(2)
+            time.sleep(10)
 
             # Calculate new scroll height and compare with last scroll height
             new_height = self.activedriver.execute_script("return document.body.scrollHeight")
@@ -402,7 +309,7 @@ class InstagramScraper():
         clear_output()
 
         print(links)
-        #print(data)
+        # print(data)
         print("Finished scraping links. Maxed out at ", len(links), " links, of which ", len(self._links),
               ' are unique.')
 
@@ -414,194 +321,7 @@ class InstagramScraper():
         # close driver
         self.closeWebdriver(self.activedriver)
 
-        return
-
-    def postDate(self, data):
-
-        """
-        Function that gets the date of post
-        Args:
-            JSON dictionary for post
-        Returns:
-            datetime of post
-        """
-
-        return datetime.utcfromtimestamp(
-            data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['taken_at_timestamp']).strftime(
-            '%Y-%m-%d %H:%M:%S')
-
-    def postUser(self, data):
-
-        """
-        Function that gets the username of the person who posted
-        Args:
-            JSON dictionary for post
-        Returns:
-            username
-        """
-        return data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['owner']['username']
-
-    def postVerifiedUser(self, data):
-
-        """
-        Function gets the verified status of the user
-        Args:
-            JSON dictionary for post
-        Returns:
-            verified status
-        """
-        return data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['owner']['is_verified']
-
-    def postLikes(self, data):
-
-        """
-        Function that gets the number of likes the post received
-        Args:
-            JSON dictionary for post
-        Returns:
-            number of likes
-        """
-
-        return data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_media_preview_like']['count']
-
-    def postVerifiedTags(self, data):
-
-        """
-        Function that gets the verified tags that a post contains
-        Args:
-            JSON dictionary for post
-        Returns:
-            the verified tags in the post
-        """
-
-        tag_end_point = data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_media_to_tagged_user'][
-            'edges']
-
-        entities = []
-
-        verif = []
-
-        for i in range(len(tag_end_point)):
-            entities.append(tag_end_point[i]['node']['user']['full_name'])
-
-            verif.append(tag_end_point[i]['node']['user']['is_verified'])
-
-        df = pd.DataFrame({'Brand': entities, 'Verified': verif})
-
-        df = df[df.Verified == True]
-
-        if len(list(df.Brand)) < 1:
-
-            return np.nan
-
-        else:
-
-            return list(df.Brand)
-
-    def postUnverifiedTags(self, data):
-
-        """
-        Function that gets the unverified tags a post contains
-        Args:
-            JSON dictionary for post
-        Returns:
-            the unverified tags in the post
-        """
-
-        tag_end_point = data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_media_to_tagged_user'][
-            'edges']
-
-        tags = []  # emoty list for entities
-
-        verif = []  # empty list for verified status
-
-        # loop through
-        for i in range(len(tag_end_point)):
-            # append entities
-            tags.append(tag_end_point[i]['node']['user']['full_name'])
-
-            # append verified status
-            verif.append(tag_end_point[i]['node']['user']['is_verified'])
-
-        # DataFrame of verified / unverified tags
-        df = pd.DataFrame({'Tag': tags, 'Verified': verif})
-
-        # subset on unverified tags
-        df = df[df.Verified == False]
-
-        # if there are unverified tags then return NaN else return unverified tags
-        if len(list(df.Tag)) < 1:
-
-            return np.nan
-
-        else:
-
-            return ''.join(list(df.Tag))
-
-    def postComment(self, data):
-
-        return data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_media_to_caption']['edges'][0][
-                'node'][
-                'text']
-
-    # get location of post
-    def postLocation(self, data):
-
-        """
-        Function that gets the post location if available
-        Args:
-            JSON dictionary for post
-        Returns:
-            the posts location
-        """
-
-        try:
-
-            if len(list(data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['location']['name'])) > 0:
-                return data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['location']['name']
-        except:
-
-            return np.nan
-
-    # get accessibility  / image data
-    def postAccessibility(self, data):
-
-        """
-        Function that gets the post accessibility data if available
-        Args:
-            JSON dictionary for post
-        Returns:
-            the accessibility data
-        """
-
-        try:
-            try:
-                image = data['entry_data']['PostPage'][0]['graphql']['shortcode_media'][
-                    'accessibility_caption'].replace('Image may contain: ', '').replace(' and ', ', ').replace(
-                    'one or more ', '')
-
-                return image
-
-            except:
-                image = \
-                    data['entry_data']['PostPage'][0]['graphql']['shortcode_media']['edge_sidecar_to_children'][
-                        'edges'][0][
-                        'node']['accessibility_caption'].replace('Image may contain: ', '').replace(' and ',
-                                                                                                    ', ').replace(
-                        'one or more ', '')
-
-                return image
-        except:
-            return np.nan
-
-    # return original post link
-    def postLink(self, data):
-
-        return data
-
-    """
-    The three main methods that combine all above
-    """
+        return self._links
 
     # get user details, log in and initiate driver
     def logIn(self):
@@ -621,113 +341,75 @@ class InstagramScraper():
 
         return self.scrapeLinks(self.setTarget())
 
-    # extract data and return dataframe
-    def getData(self):
+    def DataFrame(self, links):
+        post_username = []
+        post_desc = []
+        post_likes = []
+        post_comments = []
+        post_location = []
+        post_url = []
 
-        # create empty lists for posts and comments
-        post_date_l = []
+        for link in links:
+            page = urlopen(link).read()  # read url
+            post_url.append(link)
 
-        post_user_l = []
+            data = BeautifulSoup(page, 'html.parser')  # get a BeautifulSoup object
 
-        post_verif_l = []
-
-        post_likes_l = []
-
-        post_tags_v_l = []
-
-        post_tags_u_l = []
-
-        post_l = []
-
-        post_location_l = []
-
-        post_insta_classifier_l = []
-
-        post_link_l = []
-
-        self._listStack = [post_date_l, post_user_l, post_verif_l, post_likes_l, post_tags_v_l,
-                           post_tags_u_l, post_l, post_location_l, post_insta_classifier_l, post_link_l]
-
-        self._functionStack = [self.postDate,
-                               self.postUser,
-                               self.postVerifiedUser,
-                               self.postLikes,
-                               self.postVerifiedTags,
-                               self.postUnverifiedTags,
-                               self.postComment,
-                               self.postLocation,
-                               self.postAccessibility,
-                               self.postLink]
-
-        def extractData(links=self._links):
-
-            # loops through and calls each data collection function on each link
-            for i in tqdm(range(len(links))):
-
+            script_tag = data.find('script', {'type': 'application/ld+json'})
+            if script_tag:
+                json_str = script_tag.string
                 try:
+                    json_obj = json.loads(json_str)
+                    #print(json_obj)
+                except ValueError as e:
+                    print("Nie udało się przekształcić HTML na JSON:", e)
+            else:
+                print("Nie znaleziono tagu <script> z danymi JSON.")
 
-                    data = self.getJson(links[i])
+            author_username = json_obj['author']['identifier']['value']
+            post_username.append(author_username)
 
-                    for function in self._functionStack:
+            post = json_obj['articleBody']
+            post_desc.append(post)
 
-                        if function != self._functionStack[-1]:
+            if json_obj['contentLocation'] == None:
+                post_location.append("None")
+            else:
+                location = json_obj['contentLocation']['name']
+                post_location.append(location)
 
-                            try:
+            if 'interactionStatistic' in json_obj:
+                interaction_statistic = json_obj['interactionStatistic']
+                for interaction in interaction_statistic:
+                    if 'interactionType' in interaction and interaction[
+                        'interactionType'] == 'http://schema.org/LikeAction':
+                        likes = interaction['userInteractionCount']
+                        post_likes.append(likes)
+                    else:
+                        comments = interaction['userInteractionCount']
+                        post_comments.append(comments)
 
-                                self._listStack[self._functionStack.index(function)].append(function(data))
+        data = {
+            'Link': post_url,
+            'Username': post_username,
+            'Description': post_desc,
+            'Likes': post_likes,
+            'Comments': post_comments,
+            'Location': post_location
+        }
 
-                            except:
+        df = pd.DataFrame(data)
 
-                                self._listStack[self._functionStack.index(function)].append(np.nan)
-                        else:
-                            self._listStack[-1].append(self._functionStack[-1](links[i]))
-
-                except:
-                    pass
-            return
-
-        # execute html parsing fuction using multi threading
-        print("Attemping multi-threading...")
-
-        print("\n")
-
-        threads = int(input("How many threads?: "))
-
-        print("\n")
-
-        print("Executing...")
-
-        self.multithreadExecute(self.multithreadCompile(threads, self._links, extractData))
-
-        # set up intial data structure
-        df = pd.DataFrame({'searched_for': [self.target_label] * len(post_l),
-                           'post_link': post_link_l,
-                           'post_date': post_date_l,
-                           'post': post_l,
-                           'user': post_user_l,
-                           'user_verified_status': post_verif_l,
-                           'post_likes': post_likes_l,
-                           'post_verified_tags': post_tags_v_l,
-                           'post_unverified_tags': post_tags_u_l,
-                           'post_location': post_location_l,
-                           'post_image': post_insta_classifier_l,
-
-                           })
-
-        df.sort_values(by='post_date', ascending=False, inplace=True)
-
-        df.reset_index(drop=True, inplace=True)  # reset index
-
-        self._df = df  # retain final DataFrame as attribute
         return df
 
 
 togetherness = InstagramScraper()
 togetherness.logIn()
-togetherness.getLinks()
-togetherness_df = togetherness.getData()
+#togetherness.getLinks()
 
-# print(pd.concat([human_df,humanexperience_df,togetherness_df,connection_df]).shape)
-# print(humanexperience_df.head())
-print(togetherness_df.head())
-# print(connection_df.head())
+links = togetherness.getLinks()
+df = togetherness.DataFrame(links)
+
+display(df)
+
+
