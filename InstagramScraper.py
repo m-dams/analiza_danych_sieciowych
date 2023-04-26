@@ -292,6 +292,7 @@ class InstagramScraper():
 
             # if no more content, scrape loop is terminated
             if new_height == last_height:
+                print('No more content')
                 break
 
             last_height = new_height
@@ -301,6 +302,7 @@ class InstagramScraper():
 
             # if n target met then while loop breaks
             if len(set(links)) > int(target):
+                print('target number of links met')
                 break
 
         # links are saved as an attribute for the class instance
@@ -409,7 +411,7 @@ togetherness.logIn()
 
 links = togetherness.getLinks()
 df = togetherness.DataFrame(links)
-
+df.to_csv('instagram_data.csv', index=False)
 display(df)
 
 
